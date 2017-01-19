@@ -40,6 +40,10 @@ function isNative (Ctor: Function): boolean {
   return /native code/.test(Ctor.toString())
 }
 
+// sbj
+var iosVersionMatch = isIOS && UA.match(/os ([\d_]+)/)
+var iosVersion = iosVersionMatch && iosVersionMatch[1].split('_')
+var hasPromiseBug = iosVersion && ((Number(iosVersion[0]) === 9 && Number(iosVersion[1]) >= 3) || Number(iosVersion[0]) >= 10)
 /**
  * Defer a task to execute it asynchronously.
  */
@@ -64,7 +68,7 @@ export const nextTick = (function () {
   // completely stops working after triggering a few times... so, if native
   // Promise is available, we will use it:
   /* istanbul ignore if */
-  if (typeof Promise !== 'undefined' && isNative(Promise)) {
+  if (typeof Promise !== 'undefined' && isNative(Promise) && !hasPromiseBug) {
     var p = Promise.resolve()
     var logError = err => { console.error(err) }
     timerFunc = () => {
@@ -76,7 +80,7 @@ export const nextTick = (function () {
       // "force" the microtask queue to be flushed by adding an empty timer.
       if (isIOS) setTimeout(noop)
     }
-  } else if (typeof MutationObserver !== 'undefined' && (
+  } else if (!hasPromiseBug && typeof MutationObserver !== 'undefined' && (
     isNative(MutationObserver) ||
     // PhantomJS and iOS 7.x
     MutationObserver.toString() === '[object MutationObserverConstructor]'
